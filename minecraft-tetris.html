@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>Minecraft Tetris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#a8d08d; --bg2:#7fb069; --panel:#fffbe8; --panel2:#f3e9c8; --ink:#1e2a16; --muted:#5b6b4f;
+  --board:#1a2410; --accent:#5da130; --accent2:#ffcf3f; --wood:#8b5e2f; --border:#2f3d1e;
+  --card:#ffffff; --shadow:0 10px 0 rgba(0,0,0,.18);
+}
+body.nether{
+  --bg:#2b0e0e; --bg2:#4a1212; --panel:#2a1512; --panel2:#3d1e18; --ink:#fff1d6; --muted:#e8b4a0;
+  --board:#160808; --accent:#ff6b35; --accent2:#ffb347; --wood:#4a2320; --border:#ff8a5b; --card:#3a1a14;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);transition:background .6s}
+body:not(.nether){background:linear-gradient(180deg,#87ceeb 0 110px,#a8d08d 110px)}
+body.nether{background:linear-gradient(180deg,#1a0505 0 110px,#3d0f0f 110px)}
+a{color:inherit}
+.topgrass{height:14px;background:repeating-linear-gradient(90deg,#5da130 0 18px,#4c8a26 18px 36px);border-bottom:4px solid #6b4423}
+body.nether .topgrass{background:repeating-linear-gradient(90deg,#8b1e1e 0 18px,#5e1212 18px 36px);border-color:#1a0505}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 28px}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:6px 0 14px}
+.hero h1{font-family:"Press Start 2P",monospace;font-size:clamp(22px,4.5vw,38px);line-height:1.05;margin:0;letter-spacing:.02em;text-shadow:3px 3px 0 rgba(0,0,0,.18)}
+.hero h1 span{color:#3d7a1e} body.nether .hero h1 span{color:#ff7a2f}
+.hero p{margin:8px 0 0;font-size:15px;line-height:1.5;max-width:560px;font-weight:600;opacity:.9}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#111;color:#fff;padding:10px 12px;border:3px solid #000;font-family:"Press Start 2P",monospace;font-size:11px}
+.badge i{width:12px;height:12px;background:#7ed321;display:block;border:2px solid #000}
+body.nether .badge i{background:#ff3b1f;box-shadow:0 0 12px #ff3b1f}
+.layout{display:grid;grid-template-columns:372px 1fr;gap:18px;align-items:start}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+.game-shell{background:#6b4423;padding:10px;border:4px solid #2b1a0c;box-shadow:var(--shadow);position:relative}
+body.nether .game-shell{background:#2a0a0a;border-color:#ff6b35}
+.canvas-wrap{position:relative;background:var(--board);line-height:0}
+canvas#board{width:100%;height:auto;display:block;image-rendering:pixelated}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;background:rgba(0,0,0,.78);color:#fff;line-height:1.4}
+.overlay h2{font-family:"Press Start 2P",monospace;font-size:20px;line-height:1.3;margin:0 0 10px}
+.overlay p{font-size:14px;font-weight:600;max-width:280px;margin:0 0 16px;opacity:.9}
+.btn{appearance:none;border:3px solid #000;background:#5da130;color:#fff;font-weight:900;letter-spacing:.04em;padding:13px 18px;cursor:pointer;box-shadow:0 4px 0 #000;font-size:15px}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #000}
+.btn.secondary{background:#fff;color:#111}
+.btn.orange{background:#ff6b35}
+.side{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--panel);border:3px solid var(--border);padding:16px;box-shadow:6px 6px 0 rgba(0,0,0,.15)}
+.panel h3{font-family:"Press Start 2P",monospace;font-size:12px;margin:0 0 12px;letter-spacing:.02em}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.stat{background:var(--card);border:2px solid rgba(0,0,0,.12);padding:10px}
+.stat b{font-size:24px;line-height:1;display:block}
+.stat span{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}
+.progress{height:14px;background:#ddd;border:2px solid #111;overflow:hidden;margin-top:10px}
+.progress i{display:block;height:100%;background:#5da130;width:0%;transition:width .3s}
+body.nether .progress i{background:#ff6b35}
+.nextrow{display:flex;gap:14px;align-items:center}
+#nextCanvas{width:84px;height:84px;background:#1a2410;border:3px solid #000;image-rendering:pixelated;flex-shrink:0}
+.controls{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;visibility:visible}
+.arr-flip{font-size:26px;font-weight:900;line-height:1;color:#111;display:block;height:26px}
+.controls button{appearance:none;-webkit-appearance:none;min-height:76px;padding:10px 4px 12px;border:4px solid #000;background:#ffcf3f !important;color:#111 !important;-webkit-text-fill-color:#111;opacity:1;visibility:visible;cursor:pointer;box-shadow:0 4px 0 #000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+.controls button:active{transform:translateY(2px);box-shadow:0 2px 0 #000;background:#ffb52e !important}
+.ctl-label{font-size:15px;font-weight:900;letter-spacing:.06em;line-height:1;color:#111}
+.arr{display:block;width:0;height:0}
+.arr-left{border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:24px solid #111}
+.arr-right{border-top:13px solid transparent;border-bottom:13px solid transparent;border-left:24px solid #111}
+.arr-down{border-left:13px solid transparent;border-right:13px solid transparent;border-top:24px solid #111}
+.arr-slam{border-left:13px solid transparent;border-right:13px solid transparent;border-top:16px solid #111;box-shadow:0 -11px 0 #111}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.legend{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr 1fr}}
+.mat{display:flex;gap:10px;align-items:center;background:var(--card);border:2px solid rgba(0,0,0,.1);padding:9px}
+.mat canvas{width:36px;height:36px;image-rendering:pixelated;border:2px solid #000;flex-shrink:0}
+.mat b{font-size:13px;display:block}
+.mat span{font-size:12px;opacity:.75;line-height:1.3;display:block}
+.how{font-size:14px;line-height:1.6}
+.how kbd{background:#111;color:#fff;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+.flash{position:fixed;inset:0;background:#ff3b00;opacity:0;pointer-events:none;z-index:50;transition:opacity .2s}
+.flash.on{opacity:.55}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:18px;z-index:60;background:#111;color:#fff;border:3px solid #ffb347;padding:12px 16px;font-family:"Press Start 2P",monospace;font-size:12px;display:none;max-width:92vw;text-align:center;line-height:1.5}
+.toast.show{display:block}
+.footer{margin-top:16px;font-size:13px;font-weight:600;opacity:.8;line-height:1.5;text-align:center}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="topgrass"></div>
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast">🔥 LEVEL 10 — WELCOME TO THE NETHER 🔥</div>
+
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>MINECRAFT<br><span>TETRIS</span></h1>
+      <p><strong>Two blocks at a time now.</strong> Every drop is a linked pair of Dirt, Stone, Wood, Cobble &amp; Sand — slide it, flip it, slam it. Line up <strong>3 in a row</strong> and watch each material vanish in its own way.</p>
+    </div>
+    <div class="badge"><i></i><span id="dimensionLabel">OVERWORLD</span></div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="game-shell">
+        <div class="canvas-wrap">
+          <canvas id="board" width="324" height="648" aria-label="Game board"></canvas>
+          <div class="overlay" id="startOverlay">
+            <h2>READY TO<br>MINE &amp; MATCH?</h2>
+            <p>Blocks drop in linked pairs of two. Slide and flip the pair, place both blocks at once, and make rows of 3 matching blocks — horizontal or vertical — to clear them.</p>
+            <button class="btn" id="startBtn">START GAME</button>
+            <p style="margin-top:12px;font-size:12px">Reach Level 10 to enter the Nether</p>
+          </div>
+          <div class="overlay hidden" id="pauseOverlay">
+            <h2>PAUSED</h2>
+            <p>Take a breath. Your tower is waiting.</p>
+            <button class="btn" id="resumeBtn">RESUME</button>
+          </div>
+          <div class="overlay hidden" id="overOverlay">
+            <h2>GAME OVER</h2>
+            <p id="finalScore">Score: 0</p>
+            <button class="btn orange" id="restartBtn2">PLAY AGAIN</button>
+          </div>
+          <div class="overlay hidden" id="netherOverlay">
+            <h2 style="color:#ffb347">THE NETHER</h2>
+            <p>You reached Level 10. Everything is hotter, faster, and made of Netherrack, Blackstone, Crimson Stem, Basalt &amp; Soul Sand now.</p>
+            <button class="btn orange" id="netherContinueBtn">KEEP PLAYING</button>
+          </div>
+        </div>
+      </div>
+      <div class="controls" style="margin-top:12px" aria-label="Touch controls">
+        <button type="button" id="btnLeft" aria-label="Move left"><span class="arr arr-left" aria-hidden="true"></span><span class="ctl-label">LEFT</span></button>
+        <button type="button" id="btnRight" aria-label="Move right"><span class="arr arr-right" aria-hidden="true"></span><span class="ctl-label">RIGHT</span></button>
+        <button type="button" id="btnFlip" aria-label="Flip pair"><span class="arr-flip" aria-hidden="true">&#8635;</span><span class="ctl-label">FLIP</span></button>
+        <button type="button" id="btnDown" aria-label="Soft drop"><span class="arr arr-down" aria-hidden="true"></span><span class="ctl-label">DOWN</span></button>
+        <button type="button" id="btnHard" aria-label="Hard drop"><span class="arr arr-slam" aria-hidden="true"></span><span class="ctl-label">SLAM</span></button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;min-height:52px">
+        <button class="btn secondary" id="pauseBtn" style="flex:1">PAUSE</button>
+        <button class="btn secondary" id="restartBtn" style="flex:1">RESTART</button>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <h3>SCOREBOARD</h3>
+        <div class="stats">
+          <div class="stat"><b id="score">0</b><span>Score</span></div>
+          <div class="stat"><b id="level">1</b><span>Level</span></div>
+          <div class="stat"><b id="clears">0</b><span>Clears</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;margin-top:14px"><span id="progressLabel">Progress to Level 2</span><span id="progressPct">0%</span></div>
+        <div class="progress"><i id="progressBar"></i></div>
+        <p id="netherHint" style="font-size:13px;line-height:1.5;margin:10px 0 0;font-weight:600">🌍 Overworld — <span id="toNether">9</span> levels until the Nether portal opens.</p>
+      </div>
+
+      <div class="panel">
+        <h3>NEXT PAIR</h3>
+        <div class="nextrow">
+          <canvas id="nextCanvas" width="84" height="84"></canvas>
+          <div>
+            <b id="nextName" style="font-size:18px">—</b>
+            <p id="nextDesc" style="margin:4px 0 0;font-size:13px;line-height:1.5;opacity:.8">Your next pair will appear here.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 id="legendTitle">5 BLOCKS • 5 WAYS TO VANISH</h3>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="panel">
+        <h3>HOW TO PLAY</h3>
+        <div class="how">
+          <p style="margin:0 0 8px"><kbd>←</kbd> <kbd>→</kbd> move &nbsp; <kbd>↑</kbd> flip pair &nbsp; <kbd>↓</kbd> soft drop &nbsp; <kbd>SPACE</kbd> hard drop &nbsp; <kbd>P</kbd> pause</p>
+          <p style="margin:0">• <strong>Pairs drop together</strong> — two linked blocks fall as one piece. Flip it vertical or horizontal and swap which block leads; <strong>both blocks land</strong> wherever the pair stops, overhangs and all.<br>• <strong>Match 3+</strong> in a row or column to clear.<br>• <strong>Chains count</strong> — after a clear, falling blocks can match again for bonus points.<br>• <strong>Tap the board</strong> on touch screens to flip the pair; swipe down to slam.<br>• Speed rises every level. At <strong>Level 10</strong> the world flips to the Nether.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="footer">Fan-made block-stacking game inspired by Minecraft &amp; Tetris. Not affiliated with Mojang or Microsoft.</p>
+</div>
+
+<script>
+const COLS=9, ROWS=18, CELL=36;
+const boardEl=document.getElementById('board');
+const ctx=boardEl.getContext('2d');
+const nextCtx=document.getElementById('nextCanvas').getContext('2d');
+
+const OVERWORLD=[
+  {name:"Dirt", desc:"Deep brown — crumbles into dust", clear:"Brown • Crumbles apart", vanish:"crumble apart", colors:["#8b5a2b","#5f3a14","#a9743f","#3f2507"]},
+  {name:"Stone", desc:"Pale blue-grey — cracks & splits", clear:"Blue-grey • Cracks & splits", vanish:"crack & split", colors:["#b9c7d6","#8496ab","#dde7f0","#5d7186"]},
+  {name:"Oak Wood", desc:"Bright amber — splinters flying", clear:"Amber • Splinters apart", vanish:"splinter apart", colors:["#e08a00","#a86400","#ffb52e","#7a4800"]},
+  {name:"Cobblestone", desc:"Near-black — tumbles apart", clear:"Charcoal • Tumbles apart", vanish:"tumble apart", colors:["#34343c","#17171c","#5c5c68","#000000"]},
+  {name:"Sand", desc:"Lemon yellow — sifts & cascades away", clear:"Yellow • Sifts away ↓", vanish:"sift away", colors:["#f9e94c","#e6d21f","#fff89a","#c9b400"]},
+];
+const NETHER=[
+  {name:"Netherrack", desc:"Vivid red — crumbles into red dust", clear:"Red • Crumbles apart", vanish:"crumble apart", colors:["#d92323","#9e1212","#ff5a4e","#6e0808"]},
+  {name:"Blackstone", desc:"Pure black — cracks & splits", clear:"Black • Cracks & splits", vanish:"crack & split", colors:["#1c1a20","#050406","#38333f","#000000"]},
+  {name:"Crimson Stem", desc:"Hot magenta — splinters flying", clear:"Magenta • Splinters apart", vanish:"splinter apart", colors:["#e83e8c","#a81c5f","#ff7eb6","#6e0f3d"]},
+  {name:"Basalt", desc:"Silver-grey — tumbles apart", clear:"Silver • Tumbles apart", vanish:"tumble apart", colors:["#aeb6bd","#767e86","#d7dde2","#4a5056"]},
+  {name:"Soul Sand", desc:"Warm tan — sifts with soul wisps", clear:"Tan • Sifts away ↓", vanish:"sift away", colors:["#d2a35f","#a67c3a","#f0c98a","#7d5a24"]},
+];
+function mats(){ return isNether? NETHER: OVERWORLD; }
+
+let grid=[], current=null, nextPair=randPair(), score=0, level=1, clearGroups=0, blocksCleared=0;
+let playing=false, paused=false, isNether=false, netherShown=false;
+let dropTimer=0, lastTime=0, clearing=null, particles=[], combo=0;
+let audioCtx=null;
+
+function randType(){ return Math.floor(Math.random()*5); }
+function randPair(){ return [randType(), randType()]; }
+// A falling piece is a linked pair of two blocks. rot: 0 = second block below,
+// 1 = second block right, 2 = second block above, 3 = second block left.
+const ROT_OFF=[[0,1],[1,0],[0,-1],[-1,0]];
+function pieceCells(p, cx, cy, rot){
+  const cxx=(cx===undefined? p.x:cx), cyy=(cy===undefined? p.y:cy), rr=(rot===undefined? p.rot:rot);
+  const o=ROT_OFF[rr];
+  return [ {x:cxx, y:cyy, type:p.types[0]}, {x:cxx+o[0], y:cyy+o[1], type:p.types[1]} ];
+}
+function canPlace(p, cx, cy, rot){
+  return pieceCells(p,cx,cy,rot).every(cell=>!collides(cell.x,cell.y));
+}
+function emptyGrid(){ return Array.from({length:ROWS},()=>Array(COLS).fill(null)); }
+function fallInterval(){ return Math.max(100, 800-(level-1)*70); }
+function levelFromScore(s){ return Math.floor(s/500)+1; }
+
+function ensureAudio(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }
+function beep(freq,dur,type,vol){
+  if(!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type=type||'square'; o.frequency.value=freq; g.gain.value=vol||0.06;
+  o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(dur||0.12)); o.stop(audioCtx.currentTime+(dur||0.12));
+}
+function clearSound(t){
+  const f=[180,320,520,260,140][t];
+  beep(f,0.15,'square',0.07); setTimeout(()=>beep(f*1.5,0.12,'square',0.05),60);
+  if(t===4){ setTimeout(()=>beep(90,0.25,'sine',0.08),40); }
+}
+
+function collides(x,y){ if(x<0||x>=COLS||y>=ROWS) return true; if(y>=0 && grid[y][x]!==null) return true; return false; }
+function spawn(){
+  current={x:Math.floor(COLS/2), y:0, rot:0, types:nextPair};
+  nextPair=randPair(); updateNext(); updateHUD();
+  if(!canPlace(current, current.x, current.y, current.rot)){ gameOver(); }
+}
+function lockCurrent(){
+  if(!current) return;
+  const cells=pieceCells(current);
+  let toppedOut=false;
+  cells.forEach(cell=>{
+    if(cell.y<0){ toppedOut=true; }
+    else if(cell.y<ROWS && cell.x>=0 && cell.x<COLS){ grid[cell.y][cell.x]=cell.type; }
+  });
+  beep(120,0.06,'square',0.04);
+  current=null;
+  if(toppedOut){ gameOver(); return; }
+  const matches=findMatches();
+  if(matches.length){ startClear(matches); } else { combo=0; spawn(); }
+}
+function findMatches(){
+  const set=new Map();
+  // horizontal
+  for(let r=0;r<ROWS;r++){
+    let run=[0];
+    for(let c=1;c<=COLS;c++){
+      const cur=c<COLS?grid[r][c]:null, prev=grid[r][c-1];
+      if(cur!==null && cur===prev){ run.push(c); } else {
+        if(prev!==null && run.length>=3){ run.forEach(cc=>set.set(r+','+cc,{x:cc,y:r,type:prev})); }
+        run=[c];
+      }
+    }
+  }
+  // vertical
+  for(let c=0;c<COLS;c++){
+    let run=[0];
+    for(let r=1;r<=ROWS;r++){
+      const cur=r<ROWS?grid[r][c]:null, prev=grid[r-1][c];
+      if(cur!==null && cur===prev){ run.push(r); } else {
+        if(prev!==null && run.length>=3){ run.forEach(rr=>set.set(rr+','+c,{x:c,y:rr,type:prev})); }
+        run=[r];
+      }
+    }
+  }
+  return [...set.values()];
+}
+function startClear(cells){
+  combo++;
+  clearing={cells, start:performance.now(), dur:420};
+  // particles per type
+  cells.forEach(cell=>spawnParticles(cell));
+  const types=[...new Set(cells.map(c=>c.type))];
+  types.forEach(t=>clearSound(t));
+  const pts=cells.length*100*combo + (cells.length>3?(cells.length-3)*50:0);
+  score+=pts; blocksCleared+=cells.length; clearGroups++;
+  const newLevel=levelFromScore(score);
+  if(newLevel!==level){ level=newLevel; if(level>=10 && !isNether){ enterNether(); } }
+  updateHUD();
+}
+function spawnParticles(cell){
+  const cx=cell.x*CELL+CELL/2, cy=cell.y*CELL+CELL/2, m=mats()[cell.type], cols=m.colors;
+  const n = cell.type===4 ? 26 : 16;
+  for(let i=0;i<n;i++){
+    let p={x:cx+(Math.random()-0.5)*18, y:cy+(Math.random()-0.5)*18, vx:(Math.random()-0.5)*2, vy:Math.random()*-1, life:1, decay:0.015+Math.random()*0.02, size:2+Math.random()*4, color:cols[Math.floor(Math.random()*cols.length)], type:cell.type, rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.3};
+    if(cell.type===0){ p.vy=0.5+Math.random()*1.5; p.vx=(Math.random()-0.5)*1; } // crumble down
+    if(cell.type===1){ p.vx=(Math.random()-0.5)*5; p.vy=(Math.random()-0.5)*4; p.size=3+Math.random()*5; } // crack shards
+    if(cell.type===2){ p.vx=(Math.random()-0.5)*6; p.vy=-Math.random()*3; p.size=6+Math.random()*6; } // splinters long
+    if(cell.type===3){ p.vx=(Math.random()-0.5)*3; p.vy=-1-Math.random()*2; } // tumble bounce later via gravity
+    if(cell.type===4){ p.vx=(Math.random()-0.5)*0.6; p.vy=1+Math.random()*2.2; p.size=1.5+Math.random()*2; p.decay=0.008; } // sift
+    particles.push(p);
+  }
+}
+function finishClear(){
+  if(!clearing) return;
+  clearing.cells.forEach(c=>{ grid[c.y][c.x]=null; });
+  clearing=null;
+  // gravity per column
+  for(let c=0;c<COLS;c++){
+    let write=ROWS-1;
+    for(let r=ROWS-1;r>=0;r--){
+      if(grid[r][c]!==null){ const v=grid[r][c]; grid[r][c]=null; grid[write][c]=v; write--; }
+    }
+  }
+  const again=findMatches();
+  if(again.length){ startClear(again); } else { combo=0; spawn(); }
+}
+function enterNether(){
+  isNether=true; document.body.classList.add('nether');
+  document.getElementById('dimensionLabel').textContent='THE NETHER';
+  document.getElementById('flash').classList.add('on');
+  setTimeout(()=>document.getElementById('flash').classList.remove('on'),350);
+  const toast=document.getElementById('toast'); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2600);
+  if(!netherShown){ netherShown=true; paused=true; document.getElementById('netherOverlay').classList.remove('hidden'); }
+  buildLegend(); updateNext(); updateHUD();
+  beep(80,0.4,'sawtooth',0.08); setTimeout(()=>beep(60,0.5,'sawtooth',0.08),200);
+}
+function gameOver(){
+  playing=false;
+  document.getElementById('finalScore').textContent='Score: '+score+'  •  Level '+level+'  •  '+blocksCleared+' blocks cleared'+(isNether?'  •  Reached the Nether!':'');
+  document.getElementById('overOverlay').classList.remove('hidden');
+  beep(200,0.3,'square',0.07); setTimeout(()=>beep(140,0.4,'square',0.07),200);
+}
+function reset(){
+  grid=emptyGrid(); score=0; level=1; clearGroups=0; blocksCleared=0; combo=0; particles=[]; clearing=null; isNether=false; netherShown=false;
+  document.body.classList.remove('nether'); document.getElementById('dimensionLabel').textContent='OVERWORLD';
+  nextPair=randPair(); buildLegend();
+  document.getElementById('overOverlay').classList.add('hidden');
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  document.getElementById('netherOverlay').classList.add('hidden');
+  document.getElementById('startOverlay').classList.add('hidden');
+  playing=true; paused=false; spawn(); updateHUD();
+}
+function updateHUD(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('level').textContent=level;
+  document.getElementById('clears').textContent=clearGroups;
+  const into=score%500, pct=Math.round(into/500*100);
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('progressPct').textContent=pct+'%';
+  document.getElementById('progressLabel').textContent= level>=20 ? 'Level '+level+' — Nether master!' : 'Progress to Level '+(level+1);
+  const left=Math.max(0,10-level);
+  document.getElementById('netherHint').innerHTML= isNether ? '🔥 <strong>The Nether</strong> — hotter, faster, and every block is a Nether block now.' : '🌍 Overworld — <strong>'+left+'</strong> level'+(left===1?'':'s')+' until the Nether portal opens.';
+  const tn=document.getElementById('toNether'); if(tn) tn.textContent=left;
+}
+function updateNext(){
+  nextCtx.clearRect(0,0,84,84);
+  drawBlock(nextCtx,24,4,36,nextPair[0],0,0,true);
+  drawBlock(nextCtx,24,44,36,nextPair[1],0,1,true);
+  const m0=mats()[nextPair[0]], m1=mats()[nextPair[1]];
+  document.getElementById('nextName').textContent=m0.name+' + '+m1.name;
+  document.getElementById('nextDesc').textContent= nextPair[0]===nextPair[1]
+    ? 'A double! Drop it across two matching blocks — or stand it up — for an instant match of 3.'
+    : 'One linked pair: '+m0.name.toLowerCase()+' on top, '+m1.name.toLowerCase()+' below. Flip it to place each block where you need it.';
+}
+
+// --- Drawing blocks: pixel-art style ---
+function seeded(x,y,s){ let n=Math.sin(x*127.1+y*311.7+s*74.7)*43758.5453; return n-Math.floor(n); }
+function drawBlock(c,x,y,size,type,gx,gy,preview){
+  const m=mats()[type], cols=m.colors;
+  c.save(); c.beginPath(); c.rect(x,y,size,size); c.clip();
+  c.fillStyle=cols[0]; c.fillRect(x,y,size,size);
+  const px=size/6;
+  // speckles
+  for(let i=0;i<6;i++) for(let j=0;j<6;j++){
+    const r=seeded((gx||0)*6+i,(gy||0)*6+j,type+ (preview?99:0));
+    if(r>0.55){ c.fillStyle=cols[1+Math.floor(r*10)%3] || cols[1]; c.globalAlpha=0.55; c.fillRect(x+i*px,y+j*px,px,px); c.globalAlpha=1; }
+  }
+  if(type===0){ // dirt: chunky dark clods — unique to Dirt / Netherrack
+    c.fillStyle=cols[3]; c.globalAlpha=.75;
+    c.fillRect(x+size*0.14,y+size*0.55,size*0.24,size*0.18);
+    c.fillRect(x+size*0.58,y+size*0.16,size*0.26,size*0.18);
+    c.fillRect(x+size*0.62,y+size*0.66,size*0.18,size*0.15);
+    c.globalAlpha=1;
+  }
+  if(type===1){ // stone / blackstone: bold diagonal crack lines, always visible
+    c.strokeStyle=isNether?'#e8c87a':cols[3]; c.lineWidth=Math.max(2,size*0.055); c.beginPath();
+    c.moveTo(x+size*0.12,y+size*0.08); c.lineTo(x+size*0.44,y+size*0.42); c.lineTo(x+size*0.30,y+size*0.72);
+    c.moveTo(x+size*0.88,y+size*0.22); c.lineTo(x+size*0.58,y+size*0.50); c.lineTo(x+size*0.78,y+size*0.86);
+    c.stroke();
+    c.strokeStyle='rgba(255,255,255,.5)'; c.lineWidth=1; c.beginPath();
+    c.moveTo(x+size*0.16,y+size*0.10); c.lineTo(x+size*0.47,y+size*0.43); c.stroke();
+  }
+  if(type===2){ // wood rings / planks
+    c.strokeStyle=cols[1]; c.lineWidth=Math.max(2,size*0.07);
+    c.strokeRect(x+size*0.18,y+size*0.18,size*0.64,size*0.64);
+    c.strokeRect(x+size*0.33,y+size*0.33,size*0.34,size*0.34);
+    c.fillStyle=cols[1]; c.fillRect(x,y,size,size*0.12); c.fillRect(x,y+size*0.88,size,size*0.12);
+  }
+  if(type===3){ // cobble / basalt: big rounded stones with bright mortar gaps
+    c.fillStyle=isNether?cols[3]:'#e8e8e8'; c.globalAlpha=.9;
+    c.fillRect(x+size*0.47,y,size*0.07,size); c.fillRect(x,y+size*0.47,size,size*0.07);
+    c.globalAlpha=1; c.fillStyle=cols[2];
+    c.beginPath(); c.ellipse(x+size*0.26,y+size*0.26,size*0.19,size*0.16,0,0,Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(x+size*0.74,y+size*0.26,size*0.18,size*0.15,0,0,Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(x+size*0.27,y+size*0.74,size*0.18,size*0.15,0,0,Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(x+size*0.73,y+size*0.73,size*0.19,size*0.16,0,0,Math.PI*2); c.fill();
+    c.strokeStyle=cols[3]; c.lineWidth=2; c.strokeRect(x+3,y+3,size-6,size-6);
+  }
+  if(type===4){ // sand dots + soul sand face hint in nether
+    c.fillStyle=cols[3];
+    for(let i=0;i<14;i++){ const r=seeded(i*3+(gx||0), (gy||0)+i, type); c.fillRect(x+r*(size-5), y+seeded(i,(gx||0),7)*(size-5), 4,4); }
+    if(isNether){ c.fillStyle='rgba(0,0,0,.45)'; c.fillRect(x+size*0.28,y+size*0.34,5,5); c.fillRect(x+size*0.62,y+size*0.34,5,5); c.fillRect(x+size*0.42,y+size*0.62,size*0.18,4); }
+  }
+  // highlight + border like Minecraft inventory
+  c.fillStyle='rgba(255,255,255,.22)'; c.fillRect(x,y,size,Math.max(3,size*0.12)); c.fillRect(x,y,Math.max(3,size*0.12),size);
+  c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(x,y+size-Math.max(3,size*0.12),size,Math.max(3,size*0.12)); c.fillRect(x+size-Math.max(3,size*0.12),y,Math.max(3,size*0.12),size);
+  c.strokeStyle='rgba(0,0,0,.55)'; c.lineWidth=2; c.strokeRect(x+1,y+1,size-2,size-2);
+  c.restore();
+}
+function draw(){
+  ctx.clearRect(0,0,COLS*CELL,ROWS*CELL);
+  // background checker
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ ctx.fillStyle=(r+c)%2? (isNether?'#221010':'#243118') : (isNether?'#2a1414':'#2a3d1c'); ctx.fillRect(c*CELL,r*CELL,CELL,CELL); }
+  // grid blocks
+  const clearingSet=new Set(clearing? clearing.cells.map(c=>c.x+','+c.y):[]);
+  const t=clearing? (performance.now()-clearing.start)/clearing.dur : 0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const v=grid[r][c]; if(v===null) continue;
+    const key=c+','+r;
+    ctx.save();
+    if(clearingSet.has(key)){
+      ctx.globalAlpha=1-t*0.7;
+      // stone cracks overlay
+      if(v===1){ ctx.translate(c*CELL+CELL/2,r*CELL+CELL/2); ctx.scale(1+t*0.15,1+t*0.15); ctx.translate(-CELL/2,-CELL/2); drawBlock(ctx,0,0,CELL,v,c,r); ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(5,5); ctx.lineTo(17,17); ctx.lineTo(12,29); ctx.moveTo(31,7); ctx.lineTo(19,19); ctx.stroke(); }
+      else if(v===4){ ctx.translate(0,t*10); drawBlock(ctx,c*CELL,r*CELL,CELL,v,c,r); }
+      else { const s=1-t*0.25; ctx.translate(c*CELL+CELL/2,r*CELL+CELL/2); ctx.scale(s,s); ctx.translate(-CELL/2,-CELL/2); drawBlock(ctx,0,0,CELL,v,c,r); }
+    } else {
+      drawBlock(ctx,c*CELL,r*CELL,CELL,v,c,r);
+    }
+    ctx.restore();
+  }
+  // ghost + falling pair
+  if(current && playing && !paused){
+    let gy=current.y; while(canPlace(current,current.x,gy+1,current.rot)) gy++;
+    if(gy!==current.y){
+      ctx.save(); ctx.globalAlpha=0.28;
+      pieceCells(current,current.x,gy,current.rot).forEach(cell=>{ if(cell.y>=0) drawBlock(ctx,cell.x*CELL,cell.y*CELL,CELL,cell.type,cell.x,cell.y); });
+      ctx.restore();
+      ctx.strokeStyle='rgba(255,255,255,.5)';
+      pieceCells(current,current.x,gy,current.rot).forEach(cell=>{ if(cell.y>=0) ctx.strokeRect(cell.x*CELL+2,cell.y*CELL+2,CELL-4,CELL-4); });
+    }
+    pieceCells(current).forEach(cell=>{ if(cell.y>=0) drawBlock(ctx,cell.x*CELL,cell.y*CELL,CELL,cell.type,cell.x,cell.y); });
+  }
+  // particles
+  particles.forEach(p=>{
+    ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.color; ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    if(p.type===2) ctx.fillRect(-p.size,-1.5,p.size*2,3);
+    else ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+    ctx.restore();
+  });
+  // danger line
+  ctx.fillStyle=isNether?'rgba(255,80,40,.7)':'rgba(255,207,63,.8)'; ctx.fillRect(0,CELL*2-2,COLS*CELL,3);
+}
+function step(now){
+  const dt=Math.min(50, now-(lastTime||now)); lastTime=now;
+  if(playing && !paused){
+    if(clearing){
+      if(now-clearing.start>=clearing.dur) finishClear();
+    } else if(current){
+      dropTimer+=dt;
+      if(dropTimer>=fallInterval()){ dropTimer=0; if(canPlace(current,current.x,current.y+1,current.rot)) current.y++; else lockCurrent(); }
+    }
+    // particles physics
+    for(const p of particles){
+      if(p.type===4){ p.vy=Math.min(3.2,p.vy+0.04); } else if(p.type===3){ p.vy+=0.18; if(p.y>ROWS*CELL-5) {p.y=ROWS*CELL-5; p.vy*=-0.35;} } else { p.vy+=0.12; }
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life-=p.decay;
+    }
+    particles=particles.filter(p=>p.life>0 && p.y<ROWS*CELL+20);
+  }
+  draw();
+  requestAnimationFrame(step);
+}
+function move(dx){ if(!current||paused||!playing||clearing) return; if(canPlace(current,current.x+dx,current.y,current.rot)){ current.x+=dx; beep(600,0.03,'square',0.02);} }
+function rotatePair(){ if(!current||paused||!playing||clearing) return; const nr=(current.rot+1)%4; const kicks=[[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[0,1]]; for(const k of kicks){ if(canPlace(current,current.x+k[0],current.y+k[1],nr)){ current.x+=k[0]; current.y+=k[1]; current.rot=nr; beep(760,0.04,'square',0.03); return; } } }
+function softDrop(){ if(!current||paused||!playing||clearing) return; if(canPlace(current,current.x,current.y+1,current.rot)){ current.y++; score+=1; updateHUD(); } else lockCurrent(); }
+function hardDrop(){ if(!current||paused||!playing||clearing) return; ensureAudio(); let n=0; while(canPlace(current,current.x,current.y+1,current.rot)){ current.y++; n++; } score+=n*2; lockCurrent(); updateHUD(); }
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(e.key)) e.preventDefault();
+  ensureAudio();
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') move(-1);
+  else if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') move(1);
+  else if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'||e.key==='r'||e.key==='R') rotatePair();
+  else if(e.key==='ArrowDown'||e.key==='s'||e.key==='S') softDrop();
+  else if(e.key===' '){ if(!playing){ reset(); } else hardDrop(); }
+  else if(e.key==='p'||e.key==='P'){ togglePause(); }
+});
+function togglePause(){ if(!playing) return; paused=!paused; document.getElementById('pauseOverlay').classList.toggle('hidden',!paused); }
+document.getElementById('startBtn').onclick=()=>{ ensureAudio(); reset(); };
+document.getElementById('restartBtn').onclick=()=>{ ensureAudio(); reset(); };
+document.getElementById('restartBtn2').onclick=()=>{ ensureAudio(); reset(); };
+document.getElementById('resumeBtn').onclick=()=>togglePause();
+document.getElementById('pauseBtn').onclick=()=>togglePause();
+document.getElementById('netherContinueBtn').onclick=()=>{ paused=false; document.getElementById('netherOverlay').classList.add('hidden'); };
+document.getElementById('btnLeft').onclick=()=>{ensureAudio(); move(-1);};
+document.getElementById('btnRight').onclick=()=>{ensureAudio(); move(1);};
+document.getElementById('btnFlip').onclick=()=>{ensureAudio(); rotatePair();};
+document.getElementById('btnDown').onclick=()=>{ensureAudio(); softDrop();};
+document.getElementById('btnHard').onclick=()=>{ensureAudio(); hardDrop();};
+// swipe
+let touchX=null,touchY=null;
+boardEl.addEventListener('touchstart',e=>{ touchX=e.touches[0].clientX; touchY=e.touches[0].clientY; },{passive:true});
+boardEl.addEventListener('touchend',e=>{
+  if(touchX===null) return; const dx=e.changedTouches[0].clientX-touchX, dy=e.changedTouches[0].clientY-touchY;
+  ensureAudio();
+  if(Math.abs(dx)<12 && Math.abs(dy)<12) rotatePair();
+  else if(Math.abs(dy)>Math.abs(dx) && dy>40) hardDrop(); else if(dx>28) move(1); else if(dx<-28) move(-1); else if(dy>18) softDrop();
+  touchX=null; touchY=null;
+},{passive:true});
+
+function buildLegend(){
+  const el=document.getElementById('legend'); el.innerHTML='';
+  document.getElementById('legendTitle').textContent= isNether? 'NETHER BLOCKS • 5 WAYS TO VANISH' : '5 BLOCKS • 5 WAYS TO VANISH';
+  mats().forEach((m,i)=>{
+    const div=document.createElement('div'); div.className='mat';
+    const cv=document.createElement('canvas'); cv.width=36; cv.height=36;
+    div.appendChild(cv);
+    const txt=document.createElement('div'); txt.innerHTML='<b>'+m.name+'</b><span>'+m.clear+'</span>'; div.appendChild(txt);
+    el.appendChild(div);
+    drawBlock(cv.getContext('2d'),0,0,36,i, i, i, true);
+  });
+}
+grid=emptyGrid(); buildLegend(); updateHUD(); updateNext();
+requestAnimationFrame(step);
+</script>
+</body>
+</html>
